@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>WebAR Dice Game</title>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <!-- MindAR Image Tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <!-- Gesture Interaction -->
+    <script src="https://raw.githack.com/fcor/aframe-gesture-detector/master/gesture-detector.js"></script>
+    <script src="https://raw.githack.com/fcor/aframe-gesture-detector/master/gesture-handler.js"></script>
+    
+    <style>
+      body { margin: 0; overflow: hidden; }
+      #capture-btn {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: white;
+        border: 10px solid rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        z-index: 999;
+        display: none;
+      }
+      #capture-btn:active { background-color: #f0f0f0; transform: translateX(-50%) scale(0.95); }
+      #ui-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        background: rgba(0,0,0,0.7); color: white; z-index: 1000;
+        font-family: 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+        text-align: center; padding: 20px;
+      }
+      #ui-overlay h2 { margin-bottom: 10px; }
+      #ui-overlay p { font-size: 1.1em; opacity: 0.8; }
+      .instruction-box {
+        background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ui-overlay">
+      <div class="ui-content">
+        <h2 id="ui-title">WebAR 骰子</h2>
+        <p id="ui-text">1. 正在請求相機權限...</p>
+        <div class="instruction-box">
+          <p>請務必在 HTTPS 安全連線下開啟本網頁</p>
+        </div>
+      </div>
+    </div>
+
+    <button id="capture-btn" title="拍照"></button>
+
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights: true, preserveDrawingBuffer: true" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false"
+      gesture-detector
+      screenshot
+    >
+      <a-assets>
+        <!-- Canvas for each face -->
+        <canvas id="face-ke" width="256" height="256"></canvas>
+        <canvas id="face-xin" width="256" height="256"></canvas>
+        <canvas id="face-ke2" width="256" height="256"></canvas>
+        <canvas id="face-yue" width="256" height="256"></canvas>
+        <canvas id="face-tuan" width="256" height="256"></canvas>
+        <canvas id="face-jing" width="256" height="256"></canvas>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false" raycaster="objects: .clickable" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        <!-- The Dice Group -->
+        <a-entity 
+          id="dice-container" 
+          class="clickable"
+          position="0 0 0" 
+          scale="0.5 0.5 0.5"
+          gesture-handler="minScale: 0.2; maxScale: 3"
+        >
+          <!-- Box for the dice body -->
+          <a-box position="0 0 0" material="color: #ffffff; roughness: 0.5; metalness: 0.2" depth="1" height="1" width="1"></a-box>
+          
+          <!-- Dice Faces with Canvas Textures -->
+          <!-- Front: 客 -->
+          <a-plane position="0 0 0.51" material="src: #face-ke; transparent: true" width="0.9" height="0.9"></a-plane>
+          <!-- Back: 新 -->
+          <a-plane position="0 0 -0.51" rotation="0 180 0" material="src: #face-xin; transparent: true" width="0.9" height="0.9"></a-plane>
+          <!-- Top: 科 -->
+          <a-plane position="0 0.51 0" rotation="-90 0 0" material="src: #face-ke2; transparent: true" width="0.9" height="0.9"></a-plane>
+          <!-- Bottom: 越 -->
+          <a-plane position="0 -0.51 0" rotation="90 0 0" material="src: #face-yue; transparent: true" width="0.9" height="0.9"></a-plane>
+          <!-- Right: 團 -->
+          <a-plane position="0.51 0 0" rotation="0 90 0" material="src: #face-tuan; transparent: true" width="0.9" height="0.9"></a-plane>
+          <!-- Left: 精 -->
+          <a-plane position="-0.51 0 0" rotation="0 -90 0" material="src: #face-jing; transparent: true" width="0.9" height="0.9"></a-plane>
+        </a-entity>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      // Function to draw text on canvas
+      function drawTextToCanvas(canvasId, text) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 180px "PingFang HK", "Microsoft JhengHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 15);
+      }
+
+      // Initialize face textures
+      drawTextToCanvas('face-ke', '客');
+      drawTextToCanvas('face-xin', '新');
+      drawTextToCanvas('face-ke2', '科');
+      drawTextToCanvas('face-yue', '越');
+      drawTextToCanvas('face-tuan', '團');
+      drawTextToCanvas('face-jing', '精');
+
+      const sceneEl = document.querySelector('a-scene');
+      const overlay = document.getElementById('ui-overlay');
+      const uiTitle = document.getElementById('ui-title');
+      const uiText = document.getElementById('ui-text');
+      const captureBtn = document.getElementById('capture-btn');
+
+      // Start AR engine once the window is loaded
+      window.addEventListener('load', async () => {
+        try {
+          uiText.innerText = '2. AR 引擎初始化中...';
+          const mindarEngine = sceneEl.systems['mindar-image-system'];
+          await mindarEngine.start();
+        } catch(e) {
+          console.error("MindAR Start Error:", e);
+          uiTitle.innerText = 'AR 啟動失敗';
+          if (e.name === 'NotAllowedError') {
+            uiText.innerHTML = '錯誤：相機權限被拒絕。<br>請檢查瀏覽器設定並重新載入頁面。';
+          } else if (e.message && e.message.includes('404')) {
+            uiText.innerHTML = '錯誤：找不到 `targets.mind` 檔案。<br>請確認已編譯 Logo 並將檔案放在正確位置。';
+          } else {
+            uiText.innerHTML = `發生未知錯誤：<br>${e.message}`;
+          }
+        }
+      });
+
+      // Hide overlay when AR starts
+      sceneEl.addEventListener("arReady", (event) => {
+        uiText.innerText = '3. 請將相機對準 Logo 圖片';
+        // Keep the text for a bit before hiding
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.display = 'none'; }, 500);
+        }, 1500);
+        captureBtn.style.display = 'block';
+      });
+
+      // Handle AR error during runtime
+      sceneEl.addEventListener("arError", (event) => {
+        console.error("MindAR Runtime Error:", event.detail.error);
+        overlay.style.display = 'flex';
+        overlay.style.opacity = '1';
+        uiTitle.innerText = 'AR 執行錯誤';
+        uiText.innerHTML = `錯誤類型: ${event.detail.error.name}<br>請嘗試重新整理頁面。`;
+      });
+
+      // Handle capture photo
+      captureBtn.addEventListener('click', () => {
+        const scene = document.querySelector('a-scene');
+        const video = document.querySelector('video');
+        const arCanvas = scene.canvas;
+        
+        if (!video) return;
+
+        const outputCanvas = document.createElement('canvas');
+        outputCanvas.width = video.videoWidth;
+        outputCanvas.height = video.videoHeight;
+        const ctx = outputCanvas.getContext('2d');
+        
+        // Draw video feed
+        ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
+        
+        // Draw AR content (scaled to video size)
+        ctx.drawImage(arCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
+        
+        const link = document.createElement('a');
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        link.download = `webar-dice-${timestamp}.png`;
+        link.href = outputCanvas.toDataURL('image/png');
+        link.click();
+      });
+    </script>
+  </body>
+</html>
