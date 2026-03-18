@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-aframe.prod.js"></script>
+    <script src="https://raw.githack.com/fcor/aframe-gesture-detector/master/dist/aframe-gesture-detector.min.js"></script>
+
+    <style>
+      body { margin: 0; overflow: hidden; }
+      .mindar-ui-overlay { z-index: 1; }
+      #screenshot-button {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 999;
+        width: 70px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 4px solid #fff;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      }
+      #screenshot-button:active { background: #fff; }
+    </style>
+
+    <script>
+      AFRAME.registerComponent('gesture-handler', {
+        schema: {
+          enabled: {default: true},
+          rotationFactor: {default: 5},
+          minScale: {default: 0.3},
+          maxScale: {default: 8}
+        },
+        init: function () {
+          this.handleScale = this.handleScale.bind(this);
+          this.handleRotation = this.handleRotation.bind(this);
+          this.el.sceneEl.addEventListener('twofingermove', this.handleScale);
+          this.el.sceneEl.addEventListener('onefingermove', this.handleRotation);
+        },
+        handleScale: function (event) {
+          if (!this.data.enabled) return;
+          const { spreadChange } = event.detail;
+          const scale = this.el.getAttribute('scale');
+          const newScale = scale.x + (spreadChange * 0.01);
+          const finalScale = Math.min(Math.max(newScale, this.data.minScale), this.data.maxScale);
+          this.el.setAttribute('scale', {x: finalScale, y: finalScale, z: finalScale});
+        },
+        handleRotation: function (event) {
+          if (!this.data.enabled) return;
+          const { positionChange } = event.detail;
+          const rotation = this.el.getAttribute('rotation');
+          this.el.setAttribute('rotation', {
+            x: rotation.x + positionChange.y * this.data.rotationFactor,
+            y: rotation.y + positionChange.x * this.data.rotationFactor,
+            z: rotation.z
+          });
+        }
+      });
+    </script>
+
+    <script>
+      window.addEventListener('load', () => {
+        const screenshotButton = document.getElementById('screenshot-button');
+        screenshotButton.addEventListener('click', () => {
+          const sceneEl = document.querySelector('a-scene');
+          const canvas = sceneEl.components.screenshot.getCanvas('perspective');
+          
+          // To capture both camera and AR, we'd need more complex logic.
+          // For now, A-Frame screenshot component only captures the 3D objects.
+          // To capture the background, we need to draw the video onto the canvas.
+          const video = document.querySelector('video');
+          const finalCanvas = document.createElement('canvas');
+          finalCanvas.width = canvas.width;
+          finalCanvas.height = canvas.height;
+          const ctx = finalCanvas.getContext('2d');
+          
+          // Draw video background
+          ctx.drawImage(video, 0, 0, finalCanvas.width, finalCanvas.height);
+          // Draw AR objects
+          ctx.drawImage(canvas, 0, 0);
+          
+          const dataURL = finalCanvas.toDataURL('image/png');
+          const link = document.createElement('a');
+          link.download = 'webar-screenshot.png';
+          link.href = dataURL;
+          link.click();
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="screenshot-button"></div>
+
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+      gesture-detector
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <img id="face1" src="./1.png">
+        <img id="face2" src="./2.png">
+        <img id="face3" src="./3.png">
+        <img id="face4" src="./4.png">
+        <img id="face5" src="./5.png">
+        <img id="face6" src="./6.png">
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-entity gesture-handler="minScale: 0.1; maxScale: 5">
+          <a-box position="0 0 0" scale="0.5 0.5 0.5" material="src: #face1" rotation="0 0 0"></a-box>
+          <a-box position="0 0 0" scale="0.5 0.5 0.5" material="src: #face2" rotation="0 90 0"></a-box>
+          <a-box position="0 0 0" scale="0.5 0.5 0.5" material="src: #face3" rotation="0 180 0"></a-box>
+          <a-box position="0 0 0" scale="0.5 0.5 0.5" material="src: #face4" rotation="0 -90 0"></a-box>
+          <a-box position="0 0 0" scale="0.5 0.5 0.5" material="src: #face5" rotation="90 0 0"></a-box>
+          <a-box position="0 0 0" scale="0.5 0.5 0.5" material="src: #face6" rotation="-90 0 0"></a-box>
+        </a-entity>
+      </a-entity>
+    </a-scene>
+  </body>
+
+</html>
