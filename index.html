@@ -1,0 +1,76 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-aframe.prod.js"></script>
+
+    <script>
+      AFRAME.registerComponent('gesture-handler', {
+        init: function () {
+          this.el.sceneEl.addEventListener('twofingermove', (e) => {
+            const { spread, rotation } = e.detail;
+            const currentScale = this.el.getAttribute('scale');
+            const newScale = {
+              x: currentScale.x + spread,
+              y: currentScale.y + spread,
+              z: currentScale.z + spread,
+            };
+            if (newScale.x > 0.1 && newScale.x < 2) { // Prevent scaling too small or too large
+              this.el.setAttribute('scale', newScale);
+            }
+
+            const currentRotation = this.el.getAttribute('rotation');
+            this.el.setAttribute('rotation', {
+              x: currentRotation.x,
+              y: currentRotation.y + rotation * 5,
+              z: currentRotation.z,
+            });
+          });
+        },
+      });
+    </script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const screenshotButton = document.getElementById('screenshot-button');
+        screenshotButton.addEventListener('click', () => {
+          const sceneEl = document.querySelector('a-scene');
+          sceneEl.components.screenshot.capture('perspective');
+        });
+      });
+    </script>
+  </head>
+
+
+
+  <body>
+    <div id="screenshot-button" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; width: 60px; height: 60px; background-color: white; border-radius: 50%; border: 2px solid black; display: flex; justify-content: center; align-items: center;">
+      <div style="width: 50px; height: 50px; background-color: white; border-radius: 50%; border: 2px solid black;"></div>
+    </div>
+
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-entity mindar-image-target="targetIndex: 0">
+
+        <a-entity gesture-handler>
+          <a-box position="0 0.5 0" material="src: #face1" rotation="0 0 0"></a-box>
+          <a-box position="0 0.5 0" material="src: #face2" rotation="0 90 0"></a-box>
+          <a-box position="0 0.5 0" material="src: #face3" rotation="0 180 0"></a-box>
+          <a-box position="0 0.5 0" material="src: #face4" rotation="0 -90 0"></a-box>
+          <a-box position="0 0.5 0" material="src: #face5" rotation="90 0 0"></a-box>
+          <a-box position="0 0.5 0" material="src: #face6" rotation="-90 0 0"></a-box>
+        </a-entity>
+      </a-entity>
+    </a-scene>
+    <a-assets>
+      <img id="face1" src="./1.png">
+      <img id="face2" src="./2.png">
+      <img id="face3" src="./3.png">
+      <img id="face4" src="./4.png">
+      <img id="face5" src="./5.png">
+      <img id="face6" src="./6.png">
+    </a-assets>
+  </body>
+</html>
